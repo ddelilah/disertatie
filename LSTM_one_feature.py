@@ -23,9 +23,6 @@ def create_dataset(dataset, look_back=1):
 def get_data():
     symbols = ['GOOGL']
 
-    start = datetime.datetime(2010, 1, 1)
-    end = datetime.datetime(2013, 1, 27)
-
     data = []
     frames = []
     for ticker in symbols:
