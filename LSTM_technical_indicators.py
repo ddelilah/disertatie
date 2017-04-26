@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import tensorflow as tf
 import math
 import datetime
 import pandas_datareader.data as web
@@ -55,28 +56,27 @@ def get_data(symbols):
     dataMap = {}
     for ticker in symbols:
       partial_data = pd.read_csv("data/{}.csv".format(ticker), index_col="Date", parse_dates=True, usecols=['Date','Adj Close', 'Symbol'], na_values=['nan'])
-      log_partial_data = pd.read_csv("data/{}.csv".format(ticker), index_col="Date", parse_dates=True, usecols=['Date','Adj Close', 'Symbol'], na_values=['nan'])
-
-      partial_data = compute_technical_indicators(partial_data, 'Adj Close')
+      partial_data = preprocess_data(partial_data, 'Adj Close')
+      partial_data = compute_technical_indicators(partial_data, 'Logged First Difference')
       partial_data = partial_data.dropna()
 
-      plt.figure(1)
-      plt.subplot(211)
-      plt.plot(partial_data['Adj Close'],lw=1, label='ACN Close Prices')
-      plt.plot(partial_data['EWMA50'],'g',lw=1, label='50-day EWMA (green)')
-      plt.plot(partial_data['EWMA200'],'r', lw=1, label='200-day EWMA (red)')
-      plt.legend(loc='upper right')
-      plt.show()
+      #print(partial_data)
 
-      log_partial_data = preprocess_data(log_partial_data, 'Adj Close')
-      log_partial_data = compute_technical_indicators(log_partial_data, 'Logged First Difference')
-      log_partial_data = log_partial_data.dropna()
-      plt.subplot(212)
-      plt.plot(log_partial_data['Logged First Difference'],lw=1, label='ACN Close Prices Log')
-      plt.plot(log_partial_data['EWMA50'],'g',lw=1, label='50-day EWMA (green)')
-      plt.plot(log_partial_data['EWMA200'],'r', lw=1, label='200-day EWMA (red)')
-      plt.legend(loc='upper right')
-      plt.show()
+      # plt.figure(1)
+      # plt.subplot(211)
+      # plt.plot(partial_data['Logged First Difference'],lw=1, label='ACN Close Prices')
+      # plt.plot(partial_data['EWMA50'],'g',lw=1, label='50-day EWMA (green)')
+      # plt.plot(partial_data['EWMA200'],'r', lw=1, label='200-day EWMA (red)')
+      # plt.legend(loc='upper right')
+      # plt.show()
+
+    
+      # plt.subplot(212)
+      # plt.plot(partial_data['Logged First Difference'],lw=1, label='ACN Close Prices Log')
+      # plt.plot(partial_data['ROC20'],'g',lw=1, label='20-day ROC (green)')
+      # plt.plot(partial_data['ROC125'],'r', lw=1, label='125-day ROC (red)')
+      # plt.legend(loc='upper right')
+      # plt.show()
 
     return partial_data
 
@@ -97,14 +97,28 @@ def construct_model(data):
 
   return training_test_data
 
-# fix random seed for reproducibility
-np.random.seed(7)
-history = 4
 # load the dataset
 symbols = ['GOOGL']
-train_test_data = construct_model(get_data(symbols))
-
+train_test_data = construct_model(get_data(symbols))  
 size = train_test_data.shape[0]
+
+# data declaration & initialization
+np.random.seed(7)
+history = 4
+batch_size = 10
+window_step = 4
+input_columns_nr = 6
+input_shape = tf.placeholder(tf.float32, [batch_size, input_columns_nr])
+output_shape = tf.placeholder(tf.float32, [batch_size, 1])
+init_state = tf.placeholder(tf.float32, [batch_size, window_step])
+
+W1 = tf.Variable(tf.truncated_normal([window_step, size]))
+b1 = tf.Variable(tf.zeros([size]))
+
+W2 = tf.Variable(tf.truncated_normal([window_step, size]))
+b2 = tf.Variable(tf.zeros([size]))
+
+
 train_size = int(0.8 * size)
 train_data = train_test_data.ix[:train_size, :-1]
 train_reference = train_test_data.ix[:train_size, -1]
@@ -125,8 +139,8 @@ model.add(Dense(history, input_dim=history, activation='sigmoid'))
 model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
 model.summary()
-print(train_data.shape)
-print(train_data_reference.shape)
+#print(train_data.shape)
+#print(train_data_reference.shape)
 train_data = np.reshape(train_data, (train_data.shape[0], 1, train_data.shape[1]))
 train_data_reference = np.reshape(train_data_reference, (train_data_reference.shape[0], 1, train_data_reference.shape[1]))
 

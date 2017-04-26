@@ -8,8 +8,8 @@ import tensorflow as tf
 import pandas as pd
 
 tf.logging.set_verbosity(tf.logging.INFO)
-COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume", "Symbol", "ROC20", "ROC125", "EWMA50", "EWMA200", "Adj Close"]
-FEATURES = ["Date", "Open", "High", "Low", "Close", "Volume", "Symbol", "ROC20", "ROC125", "EWMA50", "EWMA200"]
+COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume", "ROC20", "ROC125", "EWMA50", "EWMA200", "Adj Close"]
+FEATURES = ["Date", "Open", "High", "Low", "Close", "Volume", "ROC20", "ROC125", "EWMA50", "EWMA200"]
 LABEL = "Adj Close"
 
 # ----------  Technical indicators -------------------
@@ -37,7 +37,7 @@ def get_data():
     symbols = ['GOOGL']
 
     for ticker in symbols:
-    	data = pd.read_csv("data/{}.csv".format(ticker), index_col="Date", parse_dates=True, na_values=['nan'])
+    	data = pd.read_csv("data/{}.csv".format(ticker), index_col="Date", usecols=['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Adj Close'], parse_dates=True, na_values=['nan'])
     	data = compute_technical_indicators(data, 'Adj Close')
     	data = data.dropna()
 
@@ -125,20 +125,15 @@ acct_res = tf.reduce_sum(tf.cast(acct_mat, tf.float32))
 sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer())
 
-print(train_data.shape[0])
-print(train_data.shape[1])
 train_data_tensor = tf.constant(train_data.as_matrix(), dtype = tf.float32, shape=[458, 10])
-train_reference_tensor = tf.constant(train_reference.as_matrix(), dtype = tf.float32, shape=[train_reference.shape[0], train_reference.shape[1]])
-batch_xs, batch_ys = batch_data(train_data_tensor, train_reference_tensor, 10)
+train_reference_tensor = tf.constant(train_reference.as_matrix(), dtype = tf.float32, shape=[train_reference.shape[0], 1])
 
-print('batch_xs', batch_xs)
-print('batch_ys',  batch_ys)
-# or i in range(10000):
-#     batch_xs, batch_ys = mnist.train.next_batch(10)
-#     sess.run(step, feed_dict = {a_0: batch_xs,
-#                                 y : batch_ys})
-#     if i % 1000 == 0:
-#         res = sess.run(acct_res, feed_dict =
-#                        {a_0: mnist.test.images[:1000],
-#                         y : mnist.test.labels[:1000]})
-#         print res
+for i in range(10000):
+    batch_xs, batch_ys = batch_data(train_data_tensor, train_reference_tensor, 10)
+    sess.run(step, feed_dict = {input_shape: batch_xs,
+                                output_shape : batch_ys})
+    # if i % 1000 == 0:
+    #     res = sess.run(acct_res, feed_dict =
+    #                    {a_0: mnist.test.images[:1000],
+    #                     y : mnist.test.labels[:1000]})
+    #     print res
