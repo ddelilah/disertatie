@@ -112,6 +112,10 @@ input_shape = tf.placeholder(tf.float32, [batch_size, input_columns_nr])
 output_shape = tf.placeholder(tf.float32, [batch_size, 1])
 init_state = tf.placeholder(tf.float32, [batch_size, window_step])
 
+print(input_shape)
+print(output_shape)
+print(init_state)
+
 W1 = tf.Variable(tf.truncated_normal([window_step, size]))
 b1 = tf.Variable(tf.zeros([size]))
 
@@ -119,65 +123,65 @@ W2 = tf.Variable(tf.truncated_normal([window_step, size]))
 b2 = tf.Variable(tf.zeros([size]))
 
 
-train_size = int(0.8 * size)
-train_data = train_test_data.ix[:train_size, :-1]
-train_reference = train_test_data.ix[:train_size, -1]
+# train_size = int(0.8 * size)
+# train_data = train_test_data.ix[:train_size, :-1]
+# train_reference = train_test_data.ix[:train_size, -1]
 
-#print('train data:', train_data)
-#print('train reference:', train_reference)
+# #print('train data:', train_data)
+# #print('train reference:', train_reference)
 
-test_data = train_test_data.ix[train_size:, :-1]
-test_reference = train_test_data.ix[train_size:, -1]
+# test_data = train_test_data.ix[train_size:, :-1]
+# test_reference = train_test_data.ix[train_size:, -1]
 
-model = Sequential()
-# TODO: make the model lagged data actually depend on history
-model.add(Dense(history, input_dim=history, activation='sigmoid'))
-#   model.add(Dense(int(history/2), activation='sigmoid'))
-#   #model.add(Dense(int(history/4), activation='sigmoid'))
-#   #model.add(Dense(int(history/8), activation='sigmoid'))
-#   #model.add(Dense(int(history/16), activation='sigmoid'))
-model.add(Dense(1, activation='sigmoid'))
-model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
-model.summary()
-#print(train_data.shape)
-#print(train_data_reference.shape)
-train_data = np.reshape(train_data, (train_data.shape[0], 1, train_data.shape[1]))
-train_data_reference = np.reshape(train_data_reference, (train_data_reference.shape[0], 1, train_data_reference.shape[1]))
+# model = Sequential()
+# # TODO: make the model lagged data actually depend on history
+# model.add(Dense(history, input_dim=history, activation='sigmoid'))
+# #   model.add(Dense(int(history/2), activation='sigmoid'))
+# #   #model.add(Dense(int(history/4), activation='sigmoid'))
+# #   #model.add(Dense(int(history/8), activation='sigmoid'))
+# #   #model.add(Dense(int(history/16), activation='sigmoid'))
+# model.add(Dense(1, activation='sigmoid'))
+# model.compile(optimizer='rmsprop', loss='mean_squared_error', metrics=['accuracy'])
+# model.summary()
+# #print(train_data.shape)
+# #print(train_data_reference.shape)
+# train_data = np.reshape(train_data, (train_data.shape[0], 1, train_data.shape[1]))
+# train_data_reference = np.reshape(train_data_reference, (train_data_reference.shape[0], 1, train_data_reference.shape[1]))
 
-model.fit(train_data, train_reference, shuffle=True, nb_epoch=100, batch_size=10)
+# model.fit(train_data, train_reference, shuffle=True, nb_epoch=100, batch_size=10)
 
-# Use the complete data set to see the network performance.
-# Regenerate data set because it was shuffled before.
-#   dataframe = get_data(symbols)
-#   train_test_data = dataframe[symbol]
-#   print('train_test_data ', train_test_data)
+# # Use the complete data set to see the network performance.
+# # Regenerate data set because it was shuffled before.
+# #   dataframe = get_data(symbols)
+# #   train_test_data = dataframe[symbol]
+# #   print('train_test_data ', train_test_data)
 
-test_data_predicted = model.predict(test_data)
-test_data_reference = test_data_reference
+# test_data_predicted = model.predict(test_data)
+# test_data_reference = test_data_reference
 
-print("test data predict: ", test_data_predicted)
-print("test data referece: ", test_data_reference)
+# print("test data predict: ", test_data_predicted)
+# print("test data referece: ", test_data_reference)
 
-#   #relative_deviation = test_data_predicted/test_data_reference - 1.0
-#   #print('Relative deviation: ', relative_deviation)
+# #   #relative_deviation = test_data_predicted/test_data_reference - 1.0
+# #   #print('Relative deviation: ', relative_deviation)
 
-#   # calculate root mean squared error
-#   # testScore = math.sqrt(mean_squared_error(test_data_reference[0], test_data_predicted[:,0]))
-#   # print('Test Score: %.2f RMSE' % (testScore))
+# #   # calculate root mean squared error
+# #   # testScore = math.sqrt(mean_squared_error(test_data_reference[0], test_data_predicted[:,0]))
+# #   # print('Test Score: %.2f RMSE' % (testScore))
 
-#   plt.figure()
-#   plt.plot(range(len(test_data_reference)), test_data_reference, 'b-', label='reference')
-#   plt.plot(range(len(test_data_predicted)), test_data_predicted, 'r--', label='predicted')
-#   plt.xlabel('test case #')
-#   plt.ylabel('predictions')
-#   plt.title('Reference values vs predicted values')
-#   plt.legend()
+# #   plt.figure()
+# #   plt.plot(range(len(test_data_reference)), test_data_reference, 'b-', label='reference')
+# #   plt.plot(range(len(test_data_predicted)), test_data_predicted, 'r--', label='predicted')
+# #   plt.xlabel('test case #')
+# #   plt.ylabel('predictions')
+# #   plt.title('Reference values vs predicted values')
+# #   plt.legend()
 
-#   # plt.figure()
-#   # plt.plot(range(len(test_data_predicted)), relative_deviation, 'bx', label='relative deviation')
-#   # plt.xlabel('test case #')
-#   # plt.ylabel('relative deviation')
-#   # plt.title('Relative deviation of predicted values (predicted / reference - 1)')
-#   # plt.legend()
+# #   # plt.figure()
+# #   # plt.plot(range(len(test_data_predicted)), relative_deviation, 'bx', label='relative deviation')
+# #   # plt.xlabel('test case #')
+# #   # plt.ylabel('relative deviation')
+# #   # plt.title('Relative deviation of predicted values (predicted / reference - 1)')
+# #   # plt.legend()
 
-#   plt.show()
+# #   plt.show()
