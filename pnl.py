@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
+from hyperopt import Trials, STATUS_OK, tpe
+from hyperas import optim
+from hyperas.distributions import choice, uniform
 import random
 from keras.models import Sequential
 from numpy import newaxis
@@ -10,13 +13,12 @@ from keras.layers.core import Dense, Activation, Dropout, Flatten
 from keras.layers import LSTM
 from keras.layers.convolutional import Conv1D
 from keras.layers.convolutional import MaxPooling1D
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from sklearn.preprocessing import StandardScaler
 from keras.layers.embeddings import Embedding
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
-from pandas.tools.plotting import autocorrelation_plot
-from pandas.tools.plotting import scatter_matrix
 from keras.utils import plot_model
 
 seq_len = 50
@@ -32,7 +34,7 @@ def compute_EWMA(data, ndays, feature):
 
 def compute_technical_indicators(data, feature):
     # compute 20-day Rate-of-change
-    data['ROC20'] = data[feature].pct_change(20)
+    data['ROC50'] = data[feature].pct_change(50)
     # compute 125-day Rate-of-change
     data['ROC125'] = data[feature].pct_change(125)
 
@@ -53,10 +55,10 @@ def get_data(symbols, seq_len):
     for ticker in symbols:
         partial_data = pd.read_csv("data/{}.csv".format(ticker), index_col="Date", parse_dates=True,
                                    usecols=['Date', 'Adj Close', 'Open'], na_values=['nan'])
-        exchange_data = pd.read_csv("data/exchange.csv", index_col="Date", parse_dates=True,
-                                   usecols=['Date', 'EUR/USD Close'], na_values=['nan'])
+        # exchange_data = pd.read_csv("data/exchange.csv", index_col="Date", parse_dates=True,
+        #                            usecols=['Date', 'EUR/USD Close'], na_values=['nan'])
         #partial_data = compute_technical_indicators(partial_data, 'Adj Close')
-        #data = pd.concat([partial_data, exchange_data], axis=1).iloc[::-1]
+        #data = pd.concat([partial_data, spy_data], axis=1).iloc[::-1]
         #data = data.dropna()
         partial_data = partial_data.dropna()
         data = partial_data.iloc[::-1]
@@ -65,15 +67,15 @@ def get_data(symbols, seq_len):
 
     sequence_length = seq_len + 1
     adj_close_history = []
-    ewma50_history = []
+    open_history = []
 
     for index in range(len(data) - sequence_length):
         # use iloc[::-1] to reverse the order (last entry in the array should be the value of the current timestep)
         adj_close_history.append(data['Adj Close'][index: index + sequence_length].iloc[::-1])
-        ewma50_history.append(data['Open'][index: index + sequence_length].iloc[::-1])
+        open_history.append(data['Open'][index: index + sequence_length].iloc[::-1])
 
     adj_close_history = np.array(adj_close_history)
-    ewma50_history = np.array(ewma50_history)
+    ewma50_history = np.array(open_history)
     print('ewma_50:', ewma50_history)
 
     input_size = len(adj_close_history)
@@ -191,15 +193,18 @@ def plot_results(predicted_data, true_data, title_label):
     plt.show()
 
 
+# fix random seed for reproducibility
+np.random.seed(7)
 symbols = ['FB']
-epochs = 100
+epochs = 50
 print('> Loading data... ')
 X_train, y_train, X_test, y_test = get_data(symbols, seq_len)
 print('> Data Loaded. Compiling...')
 print('X_test shape:', X_test.shape)
-model = build_model([100, 75])
+model = build_model([128, 86])
 model.summary()
-history = model.fit(X_train, y_train, batch_size=50, epochs=epochs, validation_split=0.1)
+early_stopping = EarlyStopping(monitor='val_loss', patience=10)
+history = model.fit(X_train, y_train, batch_size=64, epochs=epochs, validation_split=0.1, callbacks=[early_stopping])
 plt.plot(history.history['acc'])
 plt.plot(history.history['val_acc'])
 plt.title('model accuracy')
@@ -249,4 +254,3 @@ plt.plot(pnl, label='PNL')
 plt.xlabel('Day')
 plt.ylabel('Profit and loss value')
 plt.show()
-
